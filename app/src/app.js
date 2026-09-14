@@ -118,6 +118,21 @@ async function requestWakeLock() {
   try { wakeLock = await navigator.wakeLock?.request("screen"); } catch (_) {}
   try { navigator.bluetooth?.setScreenDimEnabled?.(false); } catch (_) {}
 }
+// ---------- visas ekranas (jei naršyklė leidžia – paslepia adreso juostą ir skirtukus)
+const fsSupported = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+async function goFullscreen() {
+  try {
+    const el = document.documentElement;
+    if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: "hide" });
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    else setStatus("⚠ Ši naršyklė viso ekrano režimo neleidžia", "warn");
+  } catch (e) { setStatus(`⚠ Visas ekranas nepavyko: ${e.message || e}`, "warn"); }
+}
+$("fsBtn").hidden = !fsSupported;
+$("fsBtn").onclick = goFullscreen;
+document.addEventListener("fullscreenchange", () => { $("fsBtn").hidden = !!document.fullscreenElement || !fsSupported; });
+document.addEventListener("webkitfullscreenchange", () => { $("fsBtn").hidden = !!document.webkitFullscreenElement || !fsSupported; });
+
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && link.connected) requestWakeLock(); });
 
 // ---------- įvykiai
@@ -129,7 +144,7 @@ $("menuBtn").onclick = e => { e.stopPropagation(); $("menu").hidden = !$("menu")
 document.addEventListener("click", () => { $("menu").hidden = true; });
 $("menu").onclick = e => {
   const act = e.target.dataset.act; $("menu").hidden = true;
-  if (act === "new") newSession(); else if (act === "save") saveExcel(); else if (act === "pick") pick();
+  if (act === "new") newSession(); else if (act === "save") saveExcel(); else if (act === "pick") pick(); else if (act === "fullscreen") goFullscreen();
 };
 
 openLatestOrNew()
