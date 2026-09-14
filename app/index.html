@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Sola CITO → Excel</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="styles.css">
+<script src="vendor/exceljs.min.js"></script>
+</head>
+<body>
+<header>
+  <div id="status">Paleidžiama...</div>
+  <button id="menuBtn" aria-label="Meniu">▼</button>
+  <div id="menu" hidden>
+    <button data-act="new">Nauja sesija</button>
+    <button data-act="save">Išsaugoti Excel</button>
+    <button data-act="pick">Prisijungti prie ruletės</button>
+  </div>
+</header>
+<main>
+  <div id="live">—</div>
+  <div id="big"></div>
+  <div id="sub"></div>
+  <button id="pickBtn" class="pick">PRISIJUNGTI PRIE RULETĖS</button>
+  <section id="grid" hidden>
+    <div class="col" data-r="1"><h2>I rūšis</h2><div class="pallet"></div><div class="count">0</div><div class="hint">lentų ant paletės</div><button class="full" style="background:#2e7d32">PALETĖ<br>PILNA</button></div>
+    <div class="col" data-r="2"><h2>II rūšis</h2><div class="pallet"></div><div class="count">0</div><div class="hint">lentų ant paletės</div><button class="full" style="background:#1565c0">PALETĖ<br>PILNA</button></div>
+    <div class="col" data-r="3"><h2>III rūšis</h2><div class="pallet"></div><div class="count">0</div><div class="hint">lentų ant paletės</div><button class="full" style="background:#c62828">PALETĖ<br>PILNA</button></div>
+  </section>
+  <button id="saveBtn" class="save">IŠSAUGOTI EXCEL</button>
+</main>
+<footer>Ruletės mygtukas 1 = III rūšis, 2 = II rūšis, 3 = I rūšis • 2 greiti = PALETĖ PILNA • 3 greiti = ATŠAUKTI paskutinį</footer>
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
