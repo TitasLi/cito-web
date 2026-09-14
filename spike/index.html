@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>CITO Bluefy bandymas</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
   :root { color-scheme: dark; }
   body { margin: 0; padding: 16px; background: #111; color: #eee; font-family: -apple-system, "Segoe UI", sans-serif; }
@@ -67,7 +69,8 @@ const log = (s, cls) => { const d = document.createElement("div"); if (cls) d.cl
   try { prev = localStorage.getItem("cito_last_visit"); localStorage.setItem("cito_last_visit", new Date().toLocaleString()); } catch (e) {}
   rows.push(`Paskutinis apsilankymas išsaugotas: <b class="${prev ? "ok" : ""}">${prev || "pirmas kartas (atidarykite dar kartą ir čia turi atsirasti data)"}</b>`);
   rows.push(`Naršyklė: ${navigator.userAgent.slice(0, 90)}`);
-  rows.push(`Be interneto: įjunkite lėktuvo režimą ir perkraukite šį puslapį. Jei atsidaro – gerai. Puslapio versija: <b>v2 ${document.lastModified}</b>`);
+  rows.push(`Režimas: <b>${window.matchMedia("(display-mode: standalone)").matches || navigator.standalone ? "atskira programėlė (standalone)" : "naršyklės skirtukas"}</b>`);
+  rows.push(`Be interneto: įjunkite lėktuvo režimą ir perkraukite šį puslapį. Jei atsidaro – gerai. Puslapio versija: <b>v3 ${document.lastModified}</b>`);
   $("checks").innerHTML = rows.join("<br>");
 })();
 
