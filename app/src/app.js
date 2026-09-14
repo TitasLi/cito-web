@@ -2,7 +2,9 @@ import { MultiPressDetector } from "./presses.js";
 import { replay, nextPalletNr, palletCount, boardsOnCurrentPallet, lastUndone } from "./model.js";
 import { newSessionName, latestSessionName } from "./sessions.js";
 import { buildWorkbook, workbookToBlob, XLSX_MIME } from "./excel.js";
-import { listSessions, createSession, appendEvent, loadEvents } from "./db.js";
+import { listSessions, createSession, appendEvent, loadEvents, updateSession } from "./db.js";
+import { Syncer } from "./sync.js";
+import { CONFIG } from "../config.js";
 import { beep, unlockAudio } from "./audio.js";
 import { CitoLink } from "./ble.js";
 
@@ -36,11 +38,46 @@ function refresh() {
   }
 }
 
+// ---------- OneDrive įkėlimas per tarpinį serverį (be paskyros, kaip „Guest Contributor“)
+const syncEnabled = !!CONFIG.relayUrl;
+async function uploadSession(id) {
+  const evs = id === session ? events : await loadEvents(id);
+  const blob = await workbookToBlob(buildWorkbook(window.ExcelJS, replay(evs).columns));
+  const r = await fetch(`${CONFIG.relayUrl.replace(/\/$/, "")}/upload?name=${encodeURIComponent(id + ".xlsx")}`,
+    { method: "POST", headers: { "X-Cito-Key": CONFIG.relayKey, "Content-Type": "application/octet-stream" }, body: blob });
+  if (!r.ok) { let msg = `HTTP ${r.status}`; try { msg += " " + ((await r.json()).error || ""); } catch (_) {} throw new Error(msg); }
+  await updateSession(id, { dirty: false, lastUploadedAt: Date.now(), lastError: null });
+}
+const syncer = new Syncer({
+  now: () => Date.now(), isOnline: () => navigator.onLine !== false, isSignedIn: () => true,
+  upload: uploadSession, onState: showCloud,
+});
+function showCloud(st) {
+  const el = $("cloud"); if (!syncEnabled) { el.textContent = ""; return; }
+  const t = st.uploadedAt ? new Date(st.uploadedAt).toLocaleTimeString("lt-LT", { hour: "2-digit", minute: "2-digit" }) : "";
+  const map = {
+    idle: ["", ""], pending: ["⏳ laukia įkėlimo", "warn"], uploading: ["☁ keliama...", "warn"],
+    offline: ["⏳ laukia interneto", "warn"], "needs-login": ["⚠ reikia prisijungti", "err"],
+    uploaded: [`☁ įkelta ${t}`, "ok"], error: [`⚠ nepavyko įkelti, kartosiu`, "err"],
+  };
+  const [text, cls] = map[st.status] || ["", ""];
+  el.textContent = text; el.className = cls; el.title = st.error || "OneDrive";
+}
+async function markDirty(id) {
+  if (!syncEnabled) return;
+  syncer.markDirty(id);
+  try { await updateSession(id, { dirty: true }); } catch (_) {}
+}
+if (syncEnabled) {
+  setInterval(() => syncer.tick(), 1000);
+  window.addEventListener("online", () => syncer.tick());
+}
+
 // ---------- įrašai (pirmiausia į DB, tik tada į ekraną)
 async function record(event) {
   try { await appendEvent(session, event); }
   catch (e) { beep("err"); setStatus(`⚠ Nepavyko išsaugoti įrašo: ${e.message}`, "err"); return false; }
-  events.push(event); state = replay(events); refresh(); return true;
+  events.push(event); state = replay(events); refresh(); markDirty(session); return true;
 }
 async function addWidth(button, valueMm) {
   const rusis = BUTTON_TO_RUSIS[button];
@@ -78,9 +115,10 @@ setInterval(() => applyActions(presses.flush(performance.now() / 1000)), 50);
 
 // ---------- sesijos
 async function openLatestOrNew() {
-  const ids = (await listSessions()).map(s => s.id);
+  const all = await listSessions(); const ids = all.map(s => s.id);
   session = latestSessionName(ids) || await createSession(newSessionName(ids));
   events = await loadEvents(session); state = replay(events); refresh();
+  for (const s of all) if (s.dirty) markDirty(s.id);   // neįkelta prieš perkrovimą – tęsiame
 }
 async function newSession() {
   const ids = (await listSessions()).map(s => s.id);
@@ -145,6 +183,7 @@ document.addEventListener("click", () => { $("menu").hidden = true; });
 $("menu").onclick = e => {
   const act = e.target.dataset.act; $("menu").hidden = true;
   if (act === "new") newSession(); else if (act === "save") saveExcel(); else if (act === "pick") pick(); else if (act === "fullscreen") goFullscreen();
+  else if (act === "upload") { if (!syncEnabled) setStatus("⚠ Įkėlimas į OneDrive dar nesukonfigūruotas", "warn"); else { markDirty(session); syncer.uploadNow(); } }
 };
 
 openLatestOrNew()

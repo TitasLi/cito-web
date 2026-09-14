@@ -47,6 +47,12 @@ Lange kiekvienai rūšiai rodoma, kelinta paletė pildoma ir kiek lentų jau ant
 - Meniu ▼ → **Nauja sesija** pradeda naują failą (`_2`, `_3` tą pačią dieną). Paleidus programėlę iš naujo
   tęsiama paskutinė sesija.
 
+## OneDrive
+Kai sukonfigūruotas tarpinis serveris, kiekvienas pakeitimas po 3 s automatiškai įkeliamas į bendrą OneDrive aplanką
+„LentuPlociuLentele“ (autorius – „Guest Contributor“, jokios paskyros telefone). Viršuje dešinėje rodoma būsena:
+„☁ įkelta 13:42“, „⏳ laukia interneto“ (įrašai lieka telefone ir bus įkelti ryšiui atsiradus), „⚠ nepavyko įkelti, kartosiu“.
+Meniu ▼ → **Įkelti į OneDrive dabar** priverčia įkelti iš karto.
+
 ## Problemos
 - „Ši naršyklė nemoka Bluetooth“ – puslapis atidarytas Safari, o ne Bluefy.
 - Prisijungiant klaida – patikrinkite Nustatymai → Bluefy → Bluetooth; įjunkite ruletę (išsijungia po 3 min neveiklos).

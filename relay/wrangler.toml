@@ -1,0 +1,10 @@
+name = "cito-relay"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# Paslaptys nustatomos komandomis (ne šiame faile):
+#   npx wrangler secret put SHARE_LINK
+#   npx wrangler secret put API_KEY
+# Vietiniam paleidimui: relay/.dev.vars su tomis pačiomis eilutėmis (failas ignoruojamas git).
+[vars]
+ALLOWED_ORIGIN = "https://titasli.github.io,http://127.0.0.1:8765"

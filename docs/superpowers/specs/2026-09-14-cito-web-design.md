@@ -79,7 +79,19 @@ paryškintos, centruotos, plotis 24. Reikšmės – skaičiai (sveiki, jei be tr
 tekstas `PALETĖ n PILNA`, paryškintas, užpildas `FFF2CC`. Eilutės numeruojamos kiekviename stulpelyje atskirai,
 kaip Windows (`_next_row` logika).
 
-## 7. Sinchronizacija su OneDrive (`sync.js`)
+## 7. Sinchronizacija su OneDrive (`sync.js` + `relay/`)
+
+**Pakeista 2026-09-14 (po užsakovo sprendimo):** užsakovas nenori, kad failai būtų keliami jo paskyros vardu ir kad
+telefone būtų prisijungta prie Microsoft. Aplankas bendrintas anonimine „Anyone can edit“ nuoroda, todėl:
+- Microsoft Graph/MSAL **nenaudojami**; Entra registracijos nereikia.
+- Įkelia tarpinis serveris `relay/` (Cloudflare Worker): iškeičia bendrinimo nuorodą į svečio sesiją (FedAuth slapukas),
+  paima `_api/contextinfo` digest ir daro `Files/add(url=..., overwrite=true)` į aplanką. OneDrive autorius – „Guest Contributor“.
+- Programėlė siunčia `POST {relayUrl}/upload?name=plociai_….xlsx` su antrašte `X-Cito-Key` (`app/config.js`).
+- Svečias failų trinti negali – tik kurti ir perrašyti. Patikrinta vietoje su `wrangler dev` (tools/relay-check.mjs).
+- `sync.js` (`Syncer`) yra grynas ir testuojamas: debounce 3 s, kartojimas kas 30 s, laukia tinklo; `isSignedIn` visada true.
+
+Žemiau – pradinis (nebeaktualus) Graph variantas, paliktas istorijai.
+
 
 Pagrindinis kelias – **Microsoft Graph** su vartotojo prisijungimu:
 - MSAL redirect srautas (PKCE), scope `Files.ReadWrite`, `offline_access`. `clientId`/`tenantId` laikomi
