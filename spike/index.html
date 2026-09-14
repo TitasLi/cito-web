@@ -22,8 +22,12 @@
 <body>
 <h1>Sola CITO → iPhone (Bluefy) bandymas</h1>
 <div id="checks"></div>
-<button id="connect">1. PRISIJUNGTI PRIE RULETĖS</button>
+<button id="connectA">1A. PRISIJUNGTI (pagal vardą SOLA_Cito)</button>
+<button id="connectB">1B. PRISIJUNGTI (rodyti visus įrenginius)</button>
+<button id="connectC">1C. PRISIJUNGTI (pagal paslaugą FFF0)</button>
 <button id="beep" class="secondary">2. Garso bandymas</button>
+<button id="avail" class="secondary">3. Ar Bluetooth įjungtas? (getAvailability)</button>
+<p style="font-size:13px;color:#888">Jei visi 1A–1C meta klaidą: iPhone Nustatymai → Bluefy → įjunkite „Bluetooth“. Taip pat Nustatymai → Privatumas → Bluetooth → Bluefy.</p>
 <div id="status">Paspauskite „Prisijungti“, pasirinkite SOLA_Cito_…</div>
 <div id="live">—</div>
 <div id="big"></div>
@@ -31,7 +35,23 @@
 <div id="log"></div>
 
 <script>
-const SERVICE = 0xfff0, NOTIFY = 0xfff1;
+const SERVICE = "0000fff0-0000-1000-8000-00805f9b34fb", NOTIFY = "0000fff1-0000-1000-8000-00805f9b34fb";
+const MODES = {
+  A: { filters: [{ namePrefix: "SOLA_Cito" }], optionalServices: [SERVICE] },
+  B: { acceptAllDevices: true, optionalServices: [SERVICE] },
+  C: { filters: [{ services: [SERVICE] }] },
+};
+function errInfo(e) {
+  const parts = [];
+  try { parts.push("typeof=" + typeof e); } catch (_) {}
+  try { if (e && e.name) parts.push("name=" + e.name); } catch (_) {}
+  try { if (e && e.message) parts.push("message=" + e.message); } catch (_) {}
+  try { if (e && e.code !== undefined) parts.push("code=" + e.code); } catch (_) {}
+  try { parts.push("String=" + String(e)); } catch (_) {}
+  try { parts.push("JSON=" + JSON.stringify(e)); } catch (_) {}
+  try { if (e && typeof e === "object") parts.push("keys=" + Object.getOwnPropertyNames(e).join(",")); } catch (_) {}
+  return parts.join(" | ");
+}
 const LINE = /^([MB])\s+(?:(\d)(L?)\s+)?(-?\d+(?:\.\d+)?)\s+(mm|cm)\s+(\w)$/;
 const $ = id => document.getElementById(id);
 const log = (s, cls) => { const d = document.createElement("div"); if (cls) d.className = cls; d.textContent = new Date().toLocaleTimeString() + "  " + s; $("log").prepend(d); };
@@ -47,6 +67,7 @@ const log = (s, cls) => { const d = document.createElement("div"); if (cls) d.cl
   try { prev = localStorage.getItem("cito_last_visit"); localStorage.setItem("cito_last_visit", new Date().toLocaleString()); } catch (e) {}
   rows.push(`Paskutinis apsilankymas išsaugotas: <b class="${prev ? "ok" : ""}">${prev || "pirmas kartas (atidarykite dar kartą ir čia turi atsirasti data)"}</b>`);
   rows.push(`Naršyklė: ${navigator.userAgent.slice(0, 90)}`);
+  rows.push(`Be interneto: įjunkite lėktuvo režimą ir perkraukite šį puslapį. Jei atsidaro – gerai. Puslapio versija: <b>v2 ${document.lastModified}</b>`);
   $("checks").innerHTML = rows.join("<br>");
 })();
 
@@ -83,11 +104,12 @@ function onNotify(ev) {
   let i;
   while ((i = buf.indexOf("\n")) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) handleLine(line); }
 }
-async function connect() {
+async function connect(mode) {
   if (!navigator.bluetooth) { $("status").textContent = "Ši naršyklė nemoka Bluetooth. Atidarykite šį puslapį Bluefy naršyklėje."; return; }
   try {
-    $("status").textContent = "Pasirinkite ruletę sąraše...";
-    device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: "SOLA_Cito" }], optionalServices: [SERVICE] });
+    $("status").textContent = "Būdas " + mode + ": pasirinkite ruletę sąraše...";
+    log("bandau būdą " + mode + ": " + JSON.stringify(MODES[mode]));
+    device = await navigator.bluetooth.requestDevice(MODES[mode]);
     log("pasirinkta: " + device.name);
     device.addEventListener("gattserverdisconnected", () => { $("status").textContent = "Ryšys nutrūko. Spauskite „Prisijungti“ dar kartą."; log("atsijungė", "bad"); });
     $("status").textContent = "Jungiuosi prie " + device.name + "...";
@@ -100,11 +122,19 @@ async function connect() {
     log("prijungta, pranešimai įjungti", "ok");
     await beep(1000, 80); await beep(1500, 80);
   } catch (e) {
-    $("status").textContent = "Klaida: " + e.message;
-    log("klaida: " + e, "bad");
+    $("status").textContent = "Klaida (" + mode + "): " + errInfo(e);
+    log("klaida (" + mode + "): " + errInfo(e), "bad");
   }
 }
-$("connect").onclick = connect;
+$("connectA").onclick = () => connect("A");
+$("connectB").onclick = () => connect("B");
+$("connectC").onclick = () => connect("C");
+$("avail").onclick = async () => {
+  try {
+    const a = navigator.bluetooth.getAvailability ? await navigator.bluetooth.getAvailability() : "funkcijos nėra";
+    log("getAvailability = " + a, a === true ? "ok" : "bad");
+  } catch (e) { log("getAvailability klaida: " + errInfo(e), "bad"); }
+};
 </script>
 </body>
 </html>
