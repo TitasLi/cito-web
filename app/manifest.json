@@ -1,0 +1,3 @@
+{ "name": "CITO pločiai", "short_name": "CITO", "start_url": "./", "scope": "./", "display": "standalone",
+  "background_color": "#111111", "theme_color": "#111111",
+  "icons": [{ "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }, { "src": "icon-1024.png", "sizes": "1024x1024", "type": "image/png" }] }
