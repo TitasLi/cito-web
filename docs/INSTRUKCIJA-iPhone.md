@@ -8,6 +8,19 @@
 4. Rekomenduojama: **Nustatymai → Pritaikymas neįgaliesiems → Guided Access** įjungti, kad darbuotojas
    netyčia neišeitų iš Bluefy (paleidžiama triskart spustelėjus šoninį mygtuką).
 
+## Piktograma pradžios ekrane (kaip programėlė)
+Bluefy pati puslapio kaip programėlės nediegia, todėl piktograma kuriama per iOS programą **Shortcuts** (Komandos):
+1. Bluefy atidarykite `https://titasli.github.io/cito-web/app/icon-1024.png`, palaikykite pirštą ant paveikslėlio →
+   **Save to Photos** (Įrašyti į Nuotraukas).
+2. Atidarykite **Shortcuts** → **+** → **Add Action** → paieškoje **Open App** → paspauskite **App** → pasirinkite **Bluefy**.
+3. Viršuje paspauskite rodyklę prie pavadinimo → **Add to Home Screen**. Pavadinimas **CITO**, piktograma →
+   **Choose Photo** → išsaugotas paveikslėlis → **Add**.
+4. Bluefy palikite atidarytą tik vieną skirtuką su programėle: paleista iš naujo Bluefy grąžina paskutinį skirtuką.
+
+## Visas ekranas
+Programėlėje spauskite **VISAS EKRANAS** (arba meniu ▼ → Visas ekranas): adreso juosta ir skirtukai paslepiami,
+lieka tik programėlė. Išeiti – braukite nuo viršaus žemyn arba spauskite Home.
+
 ## Darbo pradžia
 - Puslapį atidarykite ten, kur yra internetas (Wi‑Fi arba mobilusis). Toliau internetas nereikalingas,
   bet **puslapio neuždarykite** – Bluefy neišsaugo jo darbui be tinklo.
