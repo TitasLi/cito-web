@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>CITO Bluefy bandymas</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 16px; background: #111; color: #eee; font-family: -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 12px; color: #aaa; }
+  button { font-size: 20px; padding: 16px 20px; border: 0; border-radius: 10px; background: #1565c0; color: #fff; width: 100%; margin: 6px 0; }
+  button.secondary { background: #333; }
+  #status { margin: 10px 0; color: #aaa; font-size: 15px; }
+  #live { font-size: 34px; color: #888; text-align: center; margin-top: 8px; }
+  #big { font-size: 64px; font-weight: 700; text-align: center; }
+  #sub { font-size: 20px; text-align: center; color: #4caf50; min-height: 28px; }
+  #checks { font-size: 14px; color: #bbb; background: #1c1c1c; padding: 10px; border-radius: 8px; margin: 12px 0; line-height: 1.6; }
+  #log { font-family: Menlo, monospace; font-size: 12px; background: #000; color: #9c9; padding: 8px; border-radius: 8px; height: 180px; overflow-y: auto; white-space: pre-wrap; }
+  .ok { color: #4caf50; } .bad { color: #f44336; }
+</style>
+</head>
+<body>
+<h1>Sola CITO → iPhone (Bluefy) bandymas</h1>
+<div id="checks"></div>
+<button id="connect">1. PRISIJUNGTI PRIE RULETĖS</button>
+<button id="beep" class="secondary">2. Garso bandymas</button>
+<div id="status">Paspauskite „Prisijungti“, pasirinkite SOLA_Cito_…</div>
+<div id="live">—</div>
+<div id="big"></div>
+<div id="sub"></div>
+<div id="log"></div>
+
+<script>
+const SERVICE = 0xfff0, NOTIFY = 0xfff1;
+const LINE = /^([MB])\s+(?:(\d)(L?)\s+)?(-?\d+(?:\.\d+)?)\s+(mm|cm)\s+(\w)$/;
+const $ = id => document.getElementById(id);
+const log = (s, cls) => { const d = document.createElement("div"); if (cls) d.className = cls; d.textContent = new Date().toLocaleTimeString() + "  " + s; $("log").prepend(d); };
+
+// --- aplinkos patikrinimai (kad žinotume, ką Bluefy moka)
+(function checks() {
+  const rows = [];
+  rows.push(`Web Bluetooth: <b class="${navigator.bluetooth ? "ok" : "bad"}">${navigator.bluetooth ? "yra" : "NĖRA"}</b>`);
+  rows.push(`Service Worker (darbas be interneto): <b class="${"serviceWorker" in navigator ? "ok" : "bad"}">${"serviceWorker" in navigator ? "yra" : "NĖRA"}</b>`);
+  rows.push(`IndexedDB (duomenų saugojimas): <b class="${window.indexedDB ? "ok" : "bad"}">${window.indexedDB ? "yra" : "NĖRA"}</b>`);
+  rows.push(`Wake Lock (ekranas neužgęsta): <b class="${navigator.wakeLock ? "ok" : "bad"}">${navigator.wakeLock ? "yra" : "NĖRA"}</b>`);
+  let prev = null;
+  try { prev = localStorage.getItem("cito_last_visit"); localStorage.setItem("cito_last_visit", new Date().toLocaleString()); } catch (e) {}
+  rows.push(`Paskutinis apsilankymas išsaugotas: <b class="${prev ? "ok" : ""}">${prev || "pirmas kartas (atidarykite dar kartą ir čia turi atsirasti data)"}</b>`);
+  rows.push(`Naršyklė: ${navigator.userAgent.slice(0, 90)}`);
+  $("checks").innerHTML = rows.join("<br>");
+})();
+
+// --- garsas
+let ctx;
+function beep(freq, ms) {
+  return new Promise(res => {
+    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.value = freq; o.connect(g); g.connect(ctx.destination); g.gain.value = 0.3;
+    o.start(); setTimeout(() => { o.stop(); res(); }, ms);
+  });
+}
+async function beeps(n) { for (let i = 0; i < n; i++) { await beep(1800, 90); await new Promise(r => setTimeout(r, 70)); } }
+$("beep").onclick = async () => { await beeps(3); log("garso bandymas atliktas (turėjote girdėti 3 pyptelėjimus)"); };
+
+// --- Bluetooth
+let device, buf = "";
+function handleLine(line) {
+  const m = LINE.exec(line.trim());
+  if (!m) { log("nesuprasta: " + line, "bad"); return; }
+  let val = parseFloat(m[4]); if (m[5] === "cm") val *= 10;
+  if (m[1] === "M") { $("live").textContent = val.toFixed(0) + " mm"; return; }
+  const btn = m[2], long = m[3] === "L";
+  $("big").textContent = val.toFixed(0) + " mm";
+  $("sub").textContent = `mygtukas ${btn}${long ? " (ilgai)" : ""}`;
+  log(`MYGTUKAS ${btn}${long ? "L" : ""}  ${val} mm`, "ok");
+  if (!long) beeps(parseInt(btn));
+}
+function onNotify(ev) {
+  const dv = ev.target.value;
+  let s = ""; for (let i = 0; i < dv.byteLength; i++) s += String.fromCharCode(dv.getUint8(i));
+  buf += s;
+  let i;
+  while ((i = buf.indexOf("\n")) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) handleLine(line); }
+}
+async function connect() {
+  if (!navigator.bluetooth) { $("status").textContent = "Ši naršyklė nemoka Bluetooth. Atidarykite šį puslapį Bluefy naršyklėje."; return; }
+  try {
+    $("status").textContent = "Pasirinkite ruletę sąraše...";
+    device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: "SOLA_Cito" }], optionalServices: [SERVICE] });
+    log("pasirinkta: " + device.name);
+    device.addEventListener("gattserverdisconnected", () => { $("status").textContent = "Ryšys nutrūko. Spauskite „Prisijungti“ dar kartą."; log("atsijungė", "bad"); });
+    $("status").textContent = "Jungiuosi prie " + device.name + "...";
+    const server = await device.gatt.connect();
+    const svc = await server.getPrimaryService(SERVICE);
+    const ch = await svc.getCharacteristic(NOTIFY);
+    ch.addEventListener("characteristicvaluechanged", onNotify);
+    await ch.startNotifications();
+    $("status").textContent = "● Prijungta: " + device.name + ". Traukite juostą ir spauskite ruletės mygtukus.";
+    log("prijungta, pranešimai įjungti", "ok");
+    await beep(1000, 80); await beep(1500, 80);
+  } catch (e) {
+    $("status").textContent = "Klaida: " + e.message;
+    log("klaida: " + e, "bad");
+  }
+}
+$("connect").onclick = connect;
+</script>
+</body>
+</html>
